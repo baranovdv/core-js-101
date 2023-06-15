@@ -20,8 +20,10 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  this.width = width;
+  this.height = height;
+  this.getArea = () => this.height * this.width;
 }
 
 
@@ -35,8 +37,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,8 +53,10 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  const res = JSON.parse(json);
+  Object.setPrototypeOf(res, proto);
+  return res;
 }
 
 
@@ -110,33 +114,149 @@ function fromJSON(/* proto, json */) {
  *  For more examples see unit tests.
  */
 
+class Select {
+  constructor(element) {
+    this.element_prop = '';
+    this.id_prop = '';
+    this.class_prop = [];
+    this.attr_prop = [];
+    this.pseudoClass_prop = [];
+    this.pseudoElement_prop = '';
+
+    if (element.slice(0, 1) === '#') {
+      this.id_prop = element;
+    } else if (element.slice(0, 2) === '::') {
+      this.pseudoElement_prop = element;
+    } else if (element.slice(0, 1) === '.') {
+      this.class_prop.push(element);
+    } else if (element.slice(0, 1) === '[') {
+      this.attr_prop.push(element);
+    } else if (element.slice(0, 1) === ':') {
+      this.pseudoClass_prop.push(element);
+    } else {
+      this.element_prop = element;
+    }
+  }
+
+  stringify() {
+    return this.element_prop
+      .concat(this.id_prop)
+      .concat(...this.class_prop)
+      .concat(...this.attr_prop)
+      .concat(...this.pseudoClass_prop)
+      .concat(this.pseudoElement_prop);
+  }
+
+  element() {
+    if (this.element_prop) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+
+    if (this.id_prop || this.class_prop.length > 0 || this.attr_prop.length > 0
+      || this.pseudoClass_prop.length > 0 || this.pseudoElement_prop) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+  }
+
+  id(value) {
+    if (this.id_prop) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+
+    if (this.class_prop.length > 0 || this.attr_prop.length > 0
+      || this.pseudoClass_prop.length > 0 || this.pseudoElement_prop) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+
+    this.id_prop = '#'.concat(value);
+    return this;
+  }
+
+  class(value) {
+    if (this.attr_prop.length > 0
+      || this.pseudoClass_prop.length > 0 || this.pseudoElement_prop) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+
+    this.class_prop.push('.'.concat(value));
+    return this;
+  }
+
+  attr(value) {
+    if (this.pseudoClass_prop.length > 0 || this.pseudoElement_prop) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    this.attr_prop.push('['.concat(value, ']'));
+    return this;
+  }
+
+  pseudoClass(value) {
+    if (this.pseudoElement_prop) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    this.pseudoClass_prop.push(':'.concat(value));
+    return this;
+  }
+
+  pseudoElement(value) {
+    if (this.pseudoElement_prop) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    this.pseudoElement_prop = '::'.concat(value);
+    return this;
+  }
+
+  combine(selector1, combinator, selector2) {
+    const sel1 = selector1.stringify();
+
+    const sel2 = selector2.stringify();
+
+    this.selector = this.selector
+      ? this.selector += `${sel1} ${combinator} ${sel2}`
+      : `${sel1} ${combinator} ${sel2}`;
+    return this;
+  }
+}
+
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    return new Select(value);
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    return new Select('#'.concat(value));
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    return new Select('.'.concat(value));
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    return new Select('['.concat(value, ']'));
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    return new Select(':'.concat(value));
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    return new Select('::'.concat(value));
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    const sel1 = selector1.stringify();
+
+    const sel2 = selector2.stringify();
+
+    this.selector = `${sel1} ${combinator} ${sel2}`;
+    // this.selector = this.selector
+    //   ? this.selector += `${sel1} ${combinator} ${sel2}`
+    //   : `${sel1} ${combinator} ${sel2}`;
+    return this;
+  },
+
+  stringify() {
+    return this.selector;
   },
 };
 
