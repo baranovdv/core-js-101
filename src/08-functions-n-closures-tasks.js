@@ -154,9 +154,9 @@ function logger(func, logFunc) {
   // const outFunc = logFunc;
   return (...x) => {
     const log = x.map((item) => JSON.stringify(item)).join(',');
-    console.log(logFunc(`${func.name}(${log}) starts`));
+    (logFunc(`${func.name}(${log}) starts`));
     const res = func(...x);
-    console.log(logFunc(`${func.name}(${log}) ends`));
+    (logFunc(`${func.name}(${log}) ends`));
     return res;
   };
 }
